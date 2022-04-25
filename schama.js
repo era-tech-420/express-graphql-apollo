@@ -1,17 +1,10 @@
 const {ApolloServer,gql} = require('apollo-server-express')
-
-const users = [
-    {id:1,name:'a',age:10},
-    {id:2,name:'b',age:20},
-    {id:3,name:'c',age:30},
-    {id:4,name:'d',age:40},
-]
-
+const User = require('./models/User')
 
 const typeDefs= gql`
 
     type User{
-        id:Int,
+        id:ID,
         name:String,
         age:Int
     }
@@ -23,47 +16,51 @@ const typeDefs= gql`
 
     type Mutation{
         createUser(name:String!,age:Int!): User,
-        deleteUser(id:Int): Boolean,
-        updateUser(id:Int!,name:String,age:Int): Boolean,
+        deleteUser(id:ID): Boolean,
+        updateUser(id:ID!,name:String,age:Int): Boolean,
     }
 `
 
 const resolvers = {
     Query:{
         hello: ()=> "hello world",
-        users: ()=> users
+        users: async ()=> {
+            const users = await User.find({})
+            return users
+        }
     },
     Mutation:{
-        createUser: (parent,args)=>{
+        createUser: async (parent,args)=>{
             const {name,age} = args
-            const user = {id: users.length+1,name,age}
-            users.push(user)
+            const user = await User.create({
+                name:name,
+                age:age
+            })
             return user
         },
-        deleteUser:(parent,args)=>{
-            const userIndex = users.findIndex(user=> user.id == args.id)
+        deleteUser:async(parent,args)=>{
+           let response = false
+           const user_deleted = await User.findByIdAndDelete(args.id)
+           if(user_deleted){
+                response = true
+           } 
+           return response
+        },
+        updateUser: async(parent,args)=>{
+            const updated_data = {}
+            if(args.name){
+                updated_data['name'] = args.name
+            }
+            if(args.age){
+                updated_data['age'] = args.age
+            }
+
+            const user_updated = await User.findByIdAndUpdate(args.id, updated_data)
             let response = false
-            if(userIndex!= -1){
-                users.splice(userIndex,1)
+            if(user_updated){
                 response = true
             }
-            return response;
-        },
-        updateUser: (parent,args)=>{
-            const userIndex = users.findIndex(user=> user.id == args.id)
-
-            let response = false
-            if(userIndex!= -1){
-                if(args.name){
-                    users[userIndex].name = args.name
-                    response = true
-                }
-                if(args.age){
-                    users[userIndex].age = args.age
-                    response = true
-                }
-            }
-            return response;
+            return response
         }
     }
 }

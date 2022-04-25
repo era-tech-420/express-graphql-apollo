@@ -4,7 +4,7 @@ const app = express()
 const PORT=5000
 const {ApolloServer} = require('apollo-server-express')
 const {resolvers,typeDefs} = require('./schama')
-
+const db = require('./db')()
 
 
 app.get("/",(req,res)=>{
