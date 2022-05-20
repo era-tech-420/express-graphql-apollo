@@ -1,72 +1,80 @@
-const {ApolloServer,gql} = require('apollo-server-express')
-const User = require('./models/User')
+const { ApolloServer, gql } = require("apollo-server-express");
+const User = require("./models/User");
+const argon2 = require("argon2");
+const jwt = require("jsonwebtoken");
 
-const typeDefs= gql`
+const typeDefs = gql`
+  type User {
+    id: ID
+    name: String
+    email: String
+  }
 
-    type User{
-        id:ID,
-        name:String,
-        age:Int
-    }
+  type AuthPayload {
+    user: User
+    token: String
+  }
 
-    type Query{
-        hello: String,
-        users: [User]
-    }
+  type Query {
+    hello: String
+  }
 
-    type Mutation{
-        createUser(name:String!,age:Int!): User,
-        deleteUser(id:ID): Boolean,
-        updateUser(id:ID!,name:String,age:Int): Boolean,
-    }
-`
+  type Mutation {
+    signup(name: String!, email: String!, password: String!): User
+    login(email: String!, password: String!): AuthPayload
+  }
+`;
 
 const resolvers = {
-    Query:{
-        hello: ()=> "hello world",
-        users: async ()=> {
-            const users = await User.find({})
-            return users
+  Query: {
+    hello: () => "hello world",
+  },
+  Mutation: {
+    signup: async (parent, args, context, info) => {
+      try {
+        const { name, email, password } = args;
+        const already_exsist = await User.findOne({ email });
+        if (already_exsist) {
+          throw Error("Email already exists");
         }
+        const hashed_password = await argon2.hash(password);
+        const user = await User.create({
+          name,
+          email,
+          password: hashed_password,
+        });
+        return user;
+      } catch (error) {
+        console.log(error);
+      }
     },
-    Mutation:{
-        createUser: async (parent,args)=>{
-            const {name,age} = args
-            const user = await User.create({
-                name:name,
-                age:age
-            })
-            return user
-        },
-        deleteUser:async(parent,args)=>{
-           let response = false
-           const user_deleted = await User.findByIdAndDelete(args.id)
-           if(user_deleted){
-                response = true
-           } 
-           return response
-        },
-        updateUser: async(parent,args)=>{
-            const updated_data = {}
-            if(args.name){
-                updated_data['name'] = args.name
-            }
-            if(args.age){
-                updated_data['age'] = args.age
-            }
-
-            const user_updated = await User.findByIdAndUpdate(args.id, updated_data)
-            let response = false
-            if(user_updated){
-                response = true
-            }
-            return response
+    login: async (parent, args, context, info) => {
+      try {
+        const { email, password } = args;
+        const user = await User.findOne({ email });
+        if (!user) {
+          throw Error("Invalid email given");
         }
-    }
-}
-
+        if (!(await argon2.verify(user.password, password))) {
+          throw Error("Invalid password given!");
+        }
+        const token = jwt.sign(
+          { data: { userId: user._id, email } },
+          "my super secret",
+          { expiresIn: "1h" }
+        );
+        return {
+          user,
+          token,
+        };
+      } catch (error) {
+        console.log(error);
+      }
+    },
+  },
+};
 
 module.exports = {
-    typeDefs,
-    resolvers
-}
+  typeDefs,
+  resolvers,
+};
