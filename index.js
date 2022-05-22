@@ -1,24 +1,30 @@
 const express = require("express");
-const res = require("express/lib/response");
 const app = express();
 const PORT = 5000;
-const {
-  ApolloServer,
-  ValidationError,
-  ForbiddenError,
-} = require("apollo-server-express");
+const { ApolloServer } = require("apollo-server-express");
 const { resolvers, typeDefs } = require("./schama");
 const db = require("./db")();
 const error_responses = require("./error_response");
+const { getUserByToken } = require("./utils");
+const { makeExecutableSchema } = require("@graphql-tools/schema");
+const { applyMiddleware } = require("graphql-middleware");
+const permissions = require("./permissions");
 
 app.get("/", (req, res) => {
   return res.send("Home page");
 });
 
+const schema = makeExecutableSchema({ typeDefs, resolvers });
+
+const schemaWithPermissions = applyMiddleware(schema, permissions);
+
 const startApolloServer = async () => {
   const server = new ApolloServer({
-    typeDefs,
-    resolvers,
+    schema: schemaWithPermissions,
+    context: async ({ req }) => {
+      const user = await getUserByToken(req);
+      return user ? { auth_user: user } : null;
+    },
     formatError: (err) => error_responses(err),
   });
   await server.start();

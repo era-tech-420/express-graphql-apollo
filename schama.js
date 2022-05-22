@@ -18,6 +18,7 @@ const typeDefs = gql`
 
   type Query {
     hello: String
+    me: User
   }
 
   type Mutation {
@@ -29,6 +30,9 @@ const typeDefs = gql`
 const resolvers = {
   Query: {
     hello: () => "hello world",
+    me: (parents, args, context, info) => {
+      return context.auth_user;
+    },
   },
   Mutation: {
     signup: async (parent, args, context, info) => {
