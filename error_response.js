@@ -1,4 +1,5 @@
 const { ValidationError, ForbiddenError } = require("apollo-server-express");
+const { GraphQLError } = require("graphql");
 const { UnauthorizedError } = require("./exception/handler");
 module.exports = (err) => {
   if (err.originalError instanceof ValidationError) {
@@ -24,10 +25,22 @@ module.exports = (err) => {
       message: err.message,
     };
   }
-  console.log(err);
+
+  if (
+    err instanceof GraphQLError &&
+    err.extensions.exception.name == "ValidationError"
+  ) {
+    return {
+      code: 400,
+      status: err.extensions.exception.name,
+      message: err.message,
+    };
+  }
+
   return {
     code: 500,
     status: "INTERNAL_SERVER_ERROR",
     message: "internal server error",
+    // error: err,
   };
 };
