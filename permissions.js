@@ -1,9 +1,12 @@
-const { shield } = require("graphql-shield");
+const { shield, and } = require("graphql-shield");
 const {
   isAuthenticated,
   signupValidation,
   loginValidation,
+  updateProfileValidation,
 } = require("./rules");
+const objectHash = require("object-hash");
+const { ulid } = require("ulid");
 
 const permissions = shield(
   {
@@ -13,6 +16,7 @@ const permissions = shield(
     Mutation: {
       signup: signupValidation,
       login: loginValidation,
+      updateProfile: and(isAuthenticated, updateProfileValidation),
     },
   },
   {
@@ -20,6 +24,18 @@ const permissions = shield(
     debug: true,
     fallbackError: async (error, parent, args, context, info) => {
       return error;
+    },
+    hashFunction: ({ parent, args }) => {
+      try {
+        return objectHash(args);
+      } catch (error) {
+        if (error.message === 'Unknown object type "promise"') {
+          // ObjectHash can't handle promises so return a unique string as the hash instead
+          return ulid();
+        } else {
+          throw error;
+        }
+      }
     },
   }
 );

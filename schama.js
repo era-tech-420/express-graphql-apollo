@@ -3,12 +3,29 @@ const User = require("./models/User");
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const { UnauthorizedError } = require("./exception/handler");
+const GraphQLUpload = require("graphql-upload/GraphQLUpload.js");
+const {
+  getRandomString,
+  storeFS,
+  uploadFile,
+  deleteFile,
+} = require("./helpers");
 
 const typeDefs = gql`
+  scalar Upload
+
+  type File {
+    encryptedName: String!
+    mimetype: String!
+    encoding: String!
+    filename: String!
+  }
+
   type User {
     id: ID
     name: String
     email: String
+    profile_picture: String
   }
 
   type AuthPayload {
@@ -29,10 +46,12 @@ const typeDefs = gql`
       confirm_password: String!
     ): User
     login(email: String!, password: String!): AuthPayload
+    updateProfile(name: String, file: Upload): User
   }
 `;
 
 const resolvers = {
+  Upload: GraphQLUpload,
   Query: {
     hello: () => "hello world",
     me: (parents, args, context, info) => {
@@ -68,12 +87,32 @@ const resolvers = {
       const token = jwt.sign(
         { data: { userId: user._id, email } },
         "my super secret",
-        { expiresIn: "1h" }
+        { expiresIn: "15h" }
       );
       return {
         user,
         token,
       };
+    },
+    updateProfile: async (parent, args, context, info) => {
+      let user = context.auth_user;
+
+      let data_to_update = {};
+      if (args.name) {
+        data_to_update["name"] = args.name;
+      }
+
+      if (args.file) {
+        const { fileLocation } = await uploadFile(args, "file");
+        fileLocation && deleteFile(user.profile_picture);
+        data_to_update["profile_picture"] = fileLocation;
+      }
+
+      user = Object.keys(data_to_update).length
+        ? await User.findByIdAndUpdate(user._id, data_to_update, { new: true })
+        : user;
+
+      return user;
     },
   },
 };

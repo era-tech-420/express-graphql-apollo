@@ -9,6 +9,7 @@ const { getUserByToken } = require("./utils");
 const { makeExecutableSchema } = require("@graphql-tools/schema");
 const { applyMiddleware } = require("graphql-middleware");
 const permissions = require("./permissions");
+const graphqlUploadExpress = require("graphql-upload/graphqlUploadExpress.js");
 
 app.get("/", (req, res) => {
   return res.send("Home page");
@@ -20,13 +21,19 @@ const schemaWithPermissions = applyMiddleware(schema, permissions);
 
 const startApolloServer = async () => {
   const server = new ApolloServer({
+    debug: true,
+    // uploads: false,
     schema: schemaWithPermissions,
+    // csrfPrevention: true,
     context: async ({ req }) => {
       const user = await getUserByToken(req);
       return user ? { auth_user: user } : null;
     },
     formatError: (err) => error_responses(err),
   });
+
+  app.use(graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 10 }));
+
   await server.start();
 
   server.applyMiddleware({ app, path: "/graphql" });

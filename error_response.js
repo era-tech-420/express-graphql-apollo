@@ -1,8 +1,15 @@
-const { ValidationError, ForbiddenError } = require("apollo-server-express");
+const {
+  ValidationError,
+  ForbiddenError,
+  UserInputError,
+} = require("apollo-server-express");
 const { GraphQLError } = require("graphql");
 const { UnauthorizedError } = require("./exception/handler");
 module.exports = (err) => {
-  if (err.originalError instanceof ValidationError) {
+  if (
+    err.originalError instanceof ValidationError ||
+    err instanceof UserInputError
+  ) {
     return {
       code: 400,
       status: err.extensions.code,
@@ -41,6 +48,6 @@ module.exports = (err) => {
     code: 500,
     status: "INTERNAL_SERVER_ERROR",
     message: "internal server error",
-    // error: err,
+    error: err,
   };
 };
