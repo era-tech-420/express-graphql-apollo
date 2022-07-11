@@ -41,6 +41,6 @@ module.exports = (err) => {
     code: 500,
     status: "INTERNAL_SERVER_ERROR",
     message: "internal server error",
-    // error: err,
+    error: err,
   };
 };
