@@ -10,6 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@graphql-tools/graphql-file-loader": "^7.4.0",
+    "@graphql-tools/load": "^7.7.0",
+    "@graphql-tools/load-files": "^6.6.0",
+    "@graphql-tools/merge": "^8.3.0",
     "@graphql-tools/schema": "^8.3.13",
     "@types/argon2": "^0.15.0",
     "@types/graphql-upload": "^8.0.11",

@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = 5000;
 const { ApolloServer } = require("apollo-server-express");
-const { resolvers, typeDefs } = require("./schama");
+const { graphqlModules } = require("./graphql");
 const db = require("./db")();
 const error_responses = require("./error_response");
 const { getUserByToken } = require("./utils");
@@ -15,11 +15,13 @@ app.get("/", (req, res) => {
   return res.send("Home page");
 });
 
-const schema = makeExecutableSchema({ typeDefs, resolvers });
-
-const schemaWithPermissions = applyMiddleware(schema, permissions);
-
 const startApolloServer = async () => {
+  const { typeDefs, resolvers } = await graphqlModules();
+
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
+
+  const schemaWithPermissions = applyMiddleware(schema, permissions);
+
   const server = new ApolloServer({
     schema: schemaWithPermissions,
     context: async ({ req }) => {

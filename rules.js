@@ -45,20 +45,28 @@ const updateProfileValidation = inputRule()(
         .test({
           message: "Please provide only the image",
           test: async (file, context) => {
-            const { filename } = await file;
-            return ["png", "jpg", "jpeg"].includes(filename.split(".").pop());
+            let isValid = true;
+            if (file) {
+              const { filename } = await file;
+              isValid = ["png", "jpg", "jpeg"].includes(
+                filename.split(".").pop()
+              );
+            }
+            return isValid;
           },
         })
         .test({
           message: "Size of image must be less than 2mb",
           test: async (file, context) => {
             let isValid = true;
-            const fileObj = await file;
-            try {
-              await checkfileSize(fileObj, MAX_FILE_SIZE);
-            } catch (error) {
-              if (error === false) {
-                isValid = false;
+            if (file) {
+              const fileObj = await file;
+              try {
+                await checkfileSize(fileObj, MAX_FILE_SIZE);
+              } catch (error) {
+                if (error === false) {
+                  isValid = false;
+                }
               }
             }
             return isValid;

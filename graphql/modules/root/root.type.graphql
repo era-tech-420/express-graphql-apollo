@@ -1,0 +1,9 @@
+scalar Upload
+
+type Query {
+  _: String
+}
+
+type Mutation {
+  _: String
+}

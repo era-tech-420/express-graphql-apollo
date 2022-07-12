@@ -1,0 +1,26 @@
+extend type Query {
+  me: User
+}
+
+type User {
+  id: ID
+  name: String
+  email: String
+  profile_picture: String
+}
+
+type AuthPayload {
+  user: User
+  token: String
+}
+
+extend type Mutation {
+  signup(
+    name: String!
+    email: String!
+    password: String!
+    confirm_password: String!
+  ): User
+  login(email: String!, password: String!): AuthPayload
+  updateProfile(name: String, profile_picture: Upload): User
+}
